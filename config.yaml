@@ -1,0 +1,75 @@
+# NYC 311 Data Quality Pipeline Configuration
+
+# Database Configuration
+database:
+  host: localhost
+  port: 5432
+  database: nyc_311
+  user: pipeline_user
+  # Password should be set via PGPASSWORD environment variable
+  # password: "secure_password"
+  echo_sql: false
+
+# API Configuration
+api:
+  base_url: "https://data.cityofnewyork.us/resource/erm2-nwe9.json"
+  # Optional: SODA App Token for higher rate limits (1000 req/hr vs 60)
+  # Get one at https://data.cityofnewyork.us/profile/app_tokens
+  app_token: null
+  batch_size: 50000
+
+# Pipeline Configuration
+pipeline:
+  # Lookback window for incremental loads (days)
+  # Catches late-arriving updates to recently closed requests
+  lookback_days: 7
+  
+  # Retry configuration for transient failures
+  max_retries: 3
+  retry_backoff_seconds: 5
+  
+  # Scheduling (for reference - actual scheduling via cron/Airflow)
+  schedule_cron: "0 2 * * *"  # Daily at 2 AM UTC
+
+# Great Expectations Configuration
+great_expectations:
+  data_docs_site: "local_site"
+  checkpoint_name: "daily_checkpoint"
+  # Expectation suite name
+  suite_name: "nyc_311_suite"
+  # Validation thresholds
+  fail_on_warning: false
+  
+# dbt Configuration
+dbt:
+  project_dir: "dbt_project"
+  profiles_dir: "~/.dbt"
+  target: "dev"
+  # Models to run (empty = all)
+  models: []
+  # Full refresh for specific models
+  full_refresh: false
+
+# Power BI Configuration
+powerbi:
+  # Connection details for Power BI dataset
+  dataset_name: "NYC 311 Service Requests"
+  # Refresh schedule (configured in Power BI Service)
+  refresh_schedule: "Daily at 6 AM"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"  # or "console"
+  file: "logs/pipeline.log"
+
+# Data Quality Thresholds (for alerting)
+data_quality:
+  # Row count anomaly detection (standard deviations from 30-day mean)
+  row_count_zscore_threshold: 3
+  # Null rate threshold increase (percentage points)
+  null_rate_increase_threshold_pct: 5
+  # Freshness SLA (hours)
+  max_data_age_hours: 24
+  # Minimum completeness for critical columns
+  critical_column_completeness_min: 0.99
