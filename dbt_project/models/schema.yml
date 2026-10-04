@@ -1,0 +1,181 @@
+version: 2
+
+models:
+  - name: int_service_requests_enriched
+    description: "Enriched service requests with SLA, categorization, and age calculations"
+    columns:
+      - name: unique_key
+        tests:
+          - not_null
+          - unique
+        meta:
+          lineage:
+            source_columns: ["staging.stg_nyc_311_requests.unique_key"]
+            transformations: ["passthrough"]
+      
+      - name: sla_days
+        description: "SLA target days for this request type/agency"
+        tests:
+          - not_null
+          - expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 365
+        meta:
+          lineage:
+            source_columns: ["seed.agency_sla_policies.sla_days"]
+            transformations: ["left_join_on_agency_complaint"]
+      
+      - name: resolution_days
+        description: "Actual calendar days to resolution"
+        meta:
+          lineage:
+            source_columns: ["staging.stg_nyc_311_requests.created_at", "staging.stg_nyc_311_requests.closed_at"]
+            transformations: ["epoch_diff_days"]
+      
+      - name: sla_compliant
+        description: "Whether request was resolved within SLA"
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.resolution_days", "int_service_requests_enriched.sla_days"]
+            transformations: ["comparison"]
+      
+      - name: complaint_category
+        description: "High-level complaint category for reporting"
+        tests:
+          - accepted_values:
+              values: ['Noise', 'Heat/Hot Water', 'Rodent/Pest', 'Sanitation', 'Streets/Sidewalks', 'Water/Sewer', 'Parks/Trees', 'Construction/Building', 'Vehicles/Parking', 'Other']
+        meta:
+          lineage:
+            source_columns: ["staging.stg_nyc_311_requests.complaint_type", "staging.stg_nyc_311_requests.descriptor"]
+            transformations: ["categorize_complaint"]
+
+  - name: int_daily_agency_metrics
+    description: "Daily aggregated metrics by agency, borough, and complaint category"
+    columns:
+      - name: date_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.created_date_key"]
+            transformations: ["group_by"]
+      
+      - name: sla_compliance_rate
+        description: "Percentage of requests resolved within SLA"
+        tests:
+          - expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.sla_compliant"]
+            transformations: ["sum_case_when", "rate_calculation"]
+
+  - name: fact_service_requests
+    description: "Fact table for service requests with dimension keys and measures"
+    columns:
+      - name: request_key
+        description: "Unique identifier for the service request (primary key)"
+        tests:
+          - not_null
+          - unique
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.unique_key"]
+            transformations: ["passthrough"]
+      
+      - name: created_date_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.created_date_key"]
+            transformations: ["passthrough"]
+      
+      - name: agency_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_agency')
+              field: agency_key
+        meta:
+          lineage:
+            source_columns: ["dim_agency.agency_key"]
+            transformations: ["left_join"]
+      
+      - name: complaint_type_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_complaint_type')
+              field: complaint_type_key
+        meta:
+          lineage:
+            source_columns: ["dim_complaint_type.complaint_type_key"]
+            transformations: ["left_join"]
+      
+      - name: borough_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_borough')
+              field: borough_key
+        meta:
+          lineage:
+            source_columns: ["dim_borough.borough_key"]
+            transformations: ["left_join"]
+      
+      - name: resolution_days
+        description: "Calendar days from creation to closure"
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.resolution_days"]
+            transformations: ["passthrough"]
+      
+      - name: sla_compliant
+        description: "Whether request met SLA target"
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.sla_compliant"]
+            transformations: ["passthrough"]
+      
+      - name: is_emergency
+        description: "Flag for heat/hot water emergency requests"
+        meta:
+          lineage:
+            source_columns: ["int_service_requests_enriched.is_emergency"]
+            transformations: ["passthrough"]
+
+  - name: agg_monthly_borough_performance
+    description: "Monthly performance metrics by borough for trend analysis"
+    columns:
+      - name: sla_compliance_rate_pct
+        description: "SLA compliance rate as percentage"
+        tests:
+          - expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+        meta:
+          lineage:
+            source_columns: ["fact_service_requests.sla_compliant"]
+            transformations: ["monthly_group_by", "rate_calculation"]
+
+  - name: agg_agency_sla_scorecard
+    description: "90-day rolling agency SLA performance scorecard"
+    columns:
+      - name: sla_compliance_rate_pct
+        description: "SLA compliance rate as percentage (90-day window)"
+        tests:
+          - expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+        meta:
+          lineage:
+            source_columns: ["fact_service_requests.sla_compliant"]
+            transformations: ["90_day_window", "agency_group_by", "rate_calculation"]
