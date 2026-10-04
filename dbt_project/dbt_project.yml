@@ -1,0 +1,70 @@
+name: 'nyc_311'
+version: '1.0.0'
+config-version: 2
+
+profile: 'nyc_311'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+
+# Target configurations
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# Model configurations
+models:
+  nyc_311:
+    # Staging layer - raw to clean
+    staging:
+      +schema: staging
+      +materialized: view
+      +tags: ["staging"]
+      
+    # Intermediate layer - business logic
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+      +tags: ["intermediate"]
+      
+    # Marts layer - star schema for BI
+    marts:
+      +schema: curated
+      +materialized: table
+      +tags: ["marts"]
+      
+    # Documentation
+    +docs:
+      show: true
+
+# Seeds for reference data
+seeds:
+  nyc_311:
+    agency_sla_policies:
+      +schema: reference
+      +column_types:
+        agency: varchar(50)
+        complaint_type: varchar(200)
+        descriptor: varchar(200)
+        sla_days: integer
+        business_hours_only: boolean
+
+# Variables
+vars:
+  # Lookback window for incremental models
+  lookback_days: 7
+  # SLA default days
+  default_sla_days: 30
+
+# Dispatch configuration for macros
+dispatch:
+  - macro_namespace: dbt
+    search_order: ['nyc_311', 'dbt']
+
+# Query comments for observability
+query-comment: "dbt-nyc-311-{{ invocation_id }}"
+
+# Model contracts (dbt 1.7+)
+contracts:
+  enabled: true
