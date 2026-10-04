@@ -1,0 +1,150 @@
+version: 2
+
+sources:
+  - name: raw
+    database: nyc_311
+    schema: raw
+    tables:
+      - name: nyc_311_requests
+        identifier: nyc_311_requests
+        description: "Raw NYC 311 service requests from SODA API"
+        loaded_at_field: ingested_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}
+        columns:
+          - name: unique_key
+            description: "Unique identifier for the service request"
+            tests:
+              - not_null
+              - unique
+          - name: created_date
+            description: "Timestamp when request was created"
+            tests:
+              - not_null
+          - name: agency
+            description: "Agency responsible for handling the request"
+            tests:
+              - not_null
+          - name: borough
+            description: "NYC borough where request originated"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['MANHATTAN', 'BRONX', 'BROOKLYN', 'QUEENS', 'STATEN ISLAND', 'UNSPECIFIED']
+
+models:
+  - name: stg_nyc_311_requests
+    description: "Cleaned and typed staging view of NYC 311 requests"
+    columns:
+      - name: unique_key
+        description: "Unique identifier for the service request (primary key)"
+        tests:
+          - not_null
+          - unique
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.unique_key"]
+            transformations: ["passthrough"]
+      
+      - name: created_at
+        description: "Timestamp when request was created (parsed to timestamptz)"
+        tests:
+          - not_null
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.created_date"]
+            transformations: ["type_cast::timestamptz"]
+      
+      - name: closed_at
+        description: "Timestamp when request was closed (nullable)"
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.closed_date"]
+            transformations: ["type_cast::timestamptz", "null_if_empty"]
+      
+      - name: agency_code
+        description: "Standardized agency code (e.g., NYPD, DOB, DSNY)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['NYPD', 'DOB', 'DOHMH', 'DSNY', 'DOT', 'DPR', 'DEP', 'HPD', 'DOF', 'DCA', 'DOITT', 'FDNY', 'LAW', 'OATH', 'TLC', 'NYCHA']
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.agency"]
+            transformations: ["upper", "trim"]
+      
+      - name: complaint_type
+        description: "Standardized complaint type classification"
+        tests:
+          - not_null
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.complaint_type"]
+            transformations: ["trim"]
+      
+      - name: borough
+        description: "Standardized NYC borough"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['MANHATTAN', 'BRONX', 'BROOKLYN', 'QUEENS', 'STATEN ISLAND', 'UNSPECIFIED']
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.borough"]
+            transformations: ["standardize_borough"]
+      
+      - name: incident_zip
+        description: "5-digit ZIP code of incident location"
+        tests:
+          - expect_column_values_to_match_regex:
+              regex: "^\\d{5}$"
+              config:
+                severity: warn
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.incident_zip"]
+            transformations: ["regexp_replace_non_digits"]
+      
+      - name: latitude
+        description: "Latitude coordinate"
+        tests:
+          - expect_column_values_to_be_between:
+              min_value: 40.47
+              max_value: 40.92
+              config:
+                severity: warn
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.latitude"]
+            transformations: ["type_cast::double"]
+      
+      - name: longitude
+        description: "Longitude coordinate"
+        tests:
+          - expect_column_values_to_be_between:
+              min_value: -74.26
+              max_value: -73.70
+              config:
+                severity: warn
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.longitude"]
+            transformations: ["type_cast::double"]
+      
+      - name: status
+        description: "Current status of the request"
+        tests:
+          - accepted_values:
+              values: ['Open', 'Closed', 'In Progress', 'Pending']
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.status"]
+            transformations: ["trim"]
+      
+      - name: resolution_days
+        description: "Calendar days between creation and closure"
+        meta:
+          lineage:
+            source_columns: ["raw.nyc_311_requests.created_date", "raw.nyc_311_requests.closed_date"]
+            transformations: ["calculate_resolution_days"]
