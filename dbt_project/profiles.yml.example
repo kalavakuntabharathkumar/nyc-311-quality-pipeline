@@ -1,0 +1,30 @@
+# Copy this file to ~/.dbt/profiles.yml and update credentials
+
+nyc_311:
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: pipeline_user
+      password: "{{ env_var('PGPASSWORD') }}"
+      port: 5432
+      dbname: nyc_311
+      schema: curated
+      threads: 4
+      keepalives_idle: 60
+      connect_timeout: 10
+      retries: 3
+      search_path: "curated, staging, intermediate, reference, public"
+    
+    prod:
+      type: postgres
+      host: "{{ env_var('PGHOST') }}"
+      user: "{{ env_var('PGUSER') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      port: 5432
+      dbname: "{{ env_var('PGDATABASE') }}"
+      schema: curated
+      threads: 8
+      keepalives_idle: 60
+  
+  target: dev
