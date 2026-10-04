@@ -1,0 +1,105 @@
+{
+  "expectation_suite_name": "nyc_311_suite",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "unique_key"},
+      "meta": {"dimension": "completeness", "severity": "critical"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {"column": "unique_key"},
+      "meta": {"dimension": "uniqueness", "severity": "critical"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "created_date"},
+      "meta": {"dimension": "completeness", "severity": "critical"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_strftime_format",
+      "kwargs": {"column": "created_date", "strftime_format": "%Y-%m-%dT%H:%M:%S.%f"},
+      "meta": {"dimension": "format", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {"column": "closed_date", "min_value": "{{ created_date }}", "parse_strings_as_datetimes": true},
+      "meta": {"dimension": "referential_integrity", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "agency"},
+      "meta": {"dimension": "completeness", "severity": "critical"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "agency", "value_set": ["NYPD", "DOB", "DOHMH", "DSNY", "DOT", "DPR", "DEP", "HPD", "DOF", "DCA", "DOITT", "FDNY", "LAW", "OATH", "TLC", "NYCHA"]},
+      "meta": {"dimension": "referential_integrity", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "agency_name"},
+      "meta": {"dimension": "completeness", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "complaint_type"},
+      "meta": {"dimension": "completeness", "severity": "critical"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "descriptor", "mostly": 0.9},
+      "meta": {"dimension": "completeness", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "location_type", "value_set": ["Address", "Intersection", "Block Face", "Latitude/Longitude", "N/A"]},
+      "meta": {"dimension": "validity", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {"column": "incident_zip", "regex": "^\\\\d{5}$", "mostly": 0.85},
+      "meta": {"dimension": "validity", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "borough"},
+      "meta": {"dimension": "completeness", "severity": "critical"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "borough", "value_set": ["MANHATTAN", "BRONX", "BROOKLYN", "QUEENS", "STATEN ISLAND", "UNSPECIFIED"]},
+      "meta": {"dimension": "referential_integrity", "severity": "critical"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {"column": "latitude", "min_value": 40.47, "max_value": 40.92, "mostly": 0.7},
+      "meta": {"dimension": "validity", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {"column": "longitude", "min_value": -74.26, "max_value": -73.70, "mostly": 0.7},
+      "meta": {"dimension": "validity", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "status", "value_set": ["Open", "Closed", "In Progress", "Pending"]},
+      "meta": {"dimension": "validity", "severity": "warning"}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "resolution_description", "mostly": 0.8},
+      "meta": {"dimension": "completeness", "severity": "info"}
+    },
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {"min_value": 1000, "max_value": 10000000},
+      "meta": {"dimension": "volume", "severity": "warning"}
+    }
+  ],
+  "meta": {
+    "created_at": "2024-01-15T00:00:00",
+    "version": "1.0",
+    "description": "NYC 311 Service Requests validation suite - 15 columns profiled"
+  }
+}
