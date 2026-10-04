@@ -1,0 +1,32 @@
+name: daily_checkpoint
+config_version: 1.0
+class_name: Checkpoint
+run_name_template: "%Y%m%d-%H%M%S-nyc-311-daily-validation"
+validations:
+  - batch_request:
+      datasource_name: nyc_311_postgres
+      data_connector_name: default_inferred_data_connector_name
+      data_asset_name: raw.nyc_311_requests
+      data_connector_query:
+        index: -1
+    expectation_suite_name: nyc_311_suite
+    action_list:
+      - name: store_validation_result
+        action:
+          class_name: StoreValidationResultAction
+      - name: store_evaluation_params
+        action:
+          class_name: StoreEvaluationParametersAction
+      - name: update_data_docs
+        action:
+          class_name: UpdateDataDocsAction
+          site_names:
+            - local_site
+      - name: slack_notification_on_failure
+        action:
+          class_name: SlackNotificationAction
+          slack_webhook: "${SLACK_WEBHOOK_URL}"
+          notify_on: "failure"
+          renderer:
+            module_name: great_expectations.render.renderer.slack_renderer
+            class_name: SlackRenderer
