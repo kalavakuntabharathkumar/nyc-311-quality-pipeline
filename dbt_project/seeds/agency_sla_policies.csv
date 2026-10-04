@@ -1,0 +1,30 @@
+agency,complaint_type,descriptor,sla_days,business_hours_only
+NYPD,Noise - Residential,,30,false
+NYPD,Noise - Commercial,,30,false
+NYPD,Noise - Vehicle,,30,false
+NYPD,Blocked Driveway,,5,false
+NYPD,Illegal Parking,,5,false
+DOB,General Construction/Plumbing,,5,false
+DOB,Illegal Construction,,5,false
+DOHMH,Rodent,,14,false
+DOHMH,Food Poisoning,,3,false
+DSNY,Missed Collection,,2,false
+DSNY,Recyclables Not Collected,,2,false
+DSNY,Garbage Not Collected,,2,false
+DOT,Street Light Condition,,10,false
+DOT,Pothole,,10,false
+DOT,Traffic Signal Condition,,5,false
+DPR,Damaged Tree,,30,false
+DPR,Park Maintenance,,30,false
+DEP,Water Leak,,3,false
+DEP,Sewer Backup,,1,false
+DEP,Catch Basin Clogged,,5,false
+HPD,Heat/Hot Water,,1,false
+HPD,Plumbing,,5,false
+HPD,Paint/Plaster,,14,false
+DOF,Property Tax,,30,false
+DCA,Consumer Complaint,,30,false
+FDNY,Fire Hazard,,1,false
+TLC,Taxi Complaint,,14,false
+NYCHA,Maintenance,,14,false
+*,*,,30,false
